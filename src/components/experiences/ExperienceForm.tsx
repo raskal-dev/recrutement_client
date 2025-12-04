@@ -19,7 +19,28 @@ const experienceSchema = z.object({
   description: z.string().min(10, 'La description doit contenir au moins 10 caractères'),
   startDate: z.string().min(1, 'La date de début est requise'),
   endDate: z.string().min(1, 'La date de fin est requise'),
-}).refine((data) => {
+})
+.refine((data) => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const startDate = new Date(data.startDate)
+  startDate.setHours(0, 0, 0, 0)
+  return startDate <= today
+}, {
+  message: 'La date de début ne peut pas être dans le futur',
+  path: ['startDate'],
+})
+.refine((data) => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const endDate = new Date(data.endDate)
+  endDate.setHours(0, 0, 0, 0)
+  return endDate <= today
+}, {
+  message: 'La date de fin ne peut pas être dans le futur',
+  path: ['endDate'],
+})
+.refine((data) => {
   return new Date(data.endDate) >= new Date(data.startDate)
 }, {
   message: 'La date de fin doit être après la date de début',
@@ -109,6 +130,7 @@ export function ExperienceForm({
               <Input
                 id="startDate"
                 type="date"
+                max={new Date().toISOString().split('T')[0]}
                 {...register('startDate')}
               />
               {errors.startDate && (
@@ -121,6 +143,7 @@ export function ExperienceForm({
               <Input
                 id="endDate"
                 type="date"
+                max={new Date().toISOString().split('T')[0]}
                 {...register('endDate')}
               />
               {errors.endDate && (

@@ -739,7 +739,13 @@ export default function Profile() {
                       <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary/20 via-primary/10 to-transparent" />
                       
                       <div className="space-y-6">
-                        {profile.Experiences.map((exp, index) => (
+                        {[...profile.Experiences]
+                          .sort((a, b) => {
+                            const dateA = new Date(a.startDate).getTime()
+                            const dateB = new Date(b.startDate).getTime()
+                            return dateB - dateA // Tri décroissant (plus récent en premier)
+                          })
+                          .map((exp, index) => (
                           <motion.div
                             key={exp.id}
                             initial={{ opacity: 0, x: -20 }}

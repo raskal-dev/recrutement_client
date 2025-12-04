@@ -28,6 +28,8 @@ import {
   CheckCircle2,
   Award,
   Star,
+  UserCircle,
+  FileText,
 } from 'lucide-react'
 import api from '@/lib/api'
 import { useToast } from '@/components/ui/use-toast'
@@ -258,12 +260,9 @@ export default function Profile() {
 
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
-      <AnimatedGradient
-        className="absolute inset-0 z-0 opacity-20"
-        conic
-        variant="small"
-        animated
-      />
+      <div className="absolute inset-0 z-0 opacity-20">
+        <AnimatedGradient />
+      </div>
       <div className="container mx-auto max-w-7xl px-4 py-12 relative z-10">
         {/* Header */}
         <motion.div
@@ -463,22 +462,30 @@ export default function Profile() {
               <CardHoverEffect>
                 <GlowCard className="p-8">
                   <div className="flex items-center justify-between mb-8">
-                    <h3 className="text-xl font-semibold flex items-center gap-2">
-                      <div className="p-2 rounded-lg bg-primary/10">
-                        <User className="w-5 h-5 text-primary" />
-                      </div>
-                      Informations personnelles
+                    <h3 className="text-xl font-semibold flex items-center gap-3">
+                      <motion.div 
+                        className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20"
+                        whileHover={{ scale: 1.1, rotate: 5 }}
+                        transition={{ type: "spring", stiffness: 300 }}
+                      >
+                        <UserCircle className="w-6 h-6 text-primary" />
+                      </motion.div>
+                      <span className="bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
+                        Informations personnelles
+                      </span>
                     </h3>
                     {!isEditing && (
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        onClick={() => setIsEditing(true)}
-                        className="hover:bg-primary/10"
-                      >
-                        <Edit className="w-4 h-4 mr-2" />
-                        Modifier
-                      </Button>
+                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => setIsEditing(true)}
+                          className="hover:bg-primary/10 hover:border-primary/30 transition-all"
+                        >
+                          <Edit className="w-4 h-4 mr-2" />
+                          Modifier
+                        </Button>
+                      </motion.div>
                     )}
                   </div>
 
@@ -490,41 +497,55 @@ export default function Profile() {
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-foreground">Nom complet</label>
-                      <Input {...register('name')} className="h-11" />
-                      {errors.name && (
-                        <p className="text-sm text-destructive mt-1 flex items-center gap-1">
-                          <X className="w-3 h-3" />
-                          {errors.name.message}
-                        </p>
-                      )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                          <User className="w-4 h-4 text-primary" />
+                          Nom complet
+                        </label>
+                        <Input {...register('name')} className="h-11" />
+                        {errors.name && (
+                          <p className="text-sm text-destructive mt-1 flex items-center gap-1">
+                            <X className="w-3 h-3" />
+                            {errors.name.message}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                          <Mail className="w-4 h-4 text-primary" />
+                          Email
+                        </label>
+                        <Input type="email" {...register('email')} className="h-11" />
+                        {errors.email && (
+                          <p className="text-sm text-destructive mt-1 flex items-center gap-1">
+                            <X className="w-3 h-3" />
+                            {errors.email.message}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-primary" />
+                          À propos
+                        </label>
+                        <Input {...register('about')} placeholder="Parlez-nous de vous..." className="h-11" />
+                      </div>
+
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-primary" />
+                          Adresse
+                        </label>
+                        <Input {...register('adress')} placeholder="Ville, Pays" className="h-11" />
+                      </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-foreground">Email</label>
-                      <Input type="email" {...register('email')} className="h-11" />
-                      {errors.email && (
-                        <p className="text-sm text-destructive mt-1 flex items-center gap-1">
-                          <X className="w-3 h-3" />
-                          {errors.email.message}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-foreground">À propos</label>
-                      <Input {...register('about')} placeholder="Parlez-nous de vous..." className="h-11" />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-foreground">Adresse</label>
-                      <Input {...register('adress')} placeholder="Ville, Pays" className="h-11" />
-                    </div>
-
-                    <div className="flex gap-3 pt-4">
-                      <Button type="submit" className="flex-1">
-                        <Save className="w-4 h-4 mr-2" />
+                    <div className="flex gap-3 pt-4 border-t border-border">
+                      <Button type="submit" className="flex-1 group">
+                        <Save className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform" />
                         Enregistrer
                       </Button>
                       <Button
@@ -541,37 +562,114 @@ export default function Profile() {
                     </div>
                   </motion.form>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        Nom complet
-                      </label>
-                      <p className="text-base font-semibold text-foreground">{profile.name}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        Email
-                      </label>
-                      <p className="text-base font-semibold text-foreground break-all">{profile.email}</p>
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Nom complet */}
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.1 }}
+                      whileHover={{ scale: 1.02 }}
+                      className="group relative p-5 rounded-xl border border-border bg-gradient-to-br from-card to-muted/30 hover:border-primary/30 transition-all hover:shadow-lg hover:shadow-primary/5"
+                    >
+                      <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                      </div>
+                      <div className="flex items-start gap-4">
+                        <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-500/10 border border-blue-500/20">
+                          <User className="w-5 h-5 text-blue-500" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                            Nom complet
+                          </p>
+                          <p className="text-lg font-bold text-foreground truncate group-hover:text-primary transition-colors">
+                            {profile.name}
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+
+                    {/* Email */}
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.2 }}
+                      whileHover={{ scale: 1.02 }}
+                      className="group relative p-5 rounded-xl border border-border bg-gradient-to-br from-card to-muted/30 hover:border-primary/30 transition-all hover:shadow-lg hover:shadow-primary/5"
+                    >
+                      <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                      </div>
+                      <div className="flex items-start gap-4">
+                        <div className="p-3 rounded-lg bg-gradient-to-br from-purple-500/20 to-purple-500/10 border border-purple-500/20">
+                          <Mail className="w-5 h-5 text-purple-500" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                            Email
+                          </p>
+                          <p className="text-lg font-bold text-foreground break-all group-hover:text-primary transition-colors">
+                            {profile.email}
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+
+                    {/* À propos */}
                     {profile.about && (
-                      <div className="space-y-1 md:col-span-2">
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                          À propos
-                        </label>
-                        <p className="text-base text-foreground leading-relaxed">{profile.about}</p>
-                      </div>
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.3 }}
+                        whileHover={{ scale: 1.02 }}
+                        className="group relative p-5 rounded-xl border border-border bg-gradient-to-br from-card to-muted/30 hover:border-primary/30 transition-all hover:shadow-lg hover:shadow-primary/5 md:col-span-2"
+                      >
+                        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                        </div>
+                        <div className="flex items-start gap-4">
+                          <div className="p-3 rounded-lg bg-gradient-to-br from-green-500/20 to-green-500/10 border border-green-500/20">
+                            <FileText className="w-5 h-5 text-green-500" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                              À propos
+                            </p>
+                            <p className="text-base text-foreground leading-relaxed group-hover:text-primary/90 transition-colors">
+                              {profile.about}
+                            </p>
+                          </div>
+                        </div>
+                      </motion.div>
                     )}
+
+                    {/* Adresse */}
                     {profile.adress && (
-                      <div className="space-y-1">
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                          Adresse
-                        </label>
-                        <p className="text-base font-semibold text-foreground flex items-center gap-2">
-                          <MapPin className="w-4 h-4 text-primary" />
-                          {profile.adress}
-                        </p>
-                      </div>
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.4 }}
+                        whileHover={{ scale: 1.02 }}
+                        className="group relative p-5 rounded-xl border border-border bg-gradient-to-br from-card to-muted/30 hover:border-primary/30 transition-all hover:shadow-lg hover:shadow-primary/5 md:col-span-2"
+                      >
+                        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                        </div>
+                        <div className="flex items-start gap-4">
+                          <div className="p-3 rounded-lg bg-gradient-to-br from-orange-500/20 to-orange-500/10 border border-orange-500/20">
+                            <MapPin className="w-5 h-5 text-orange-500" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                              Adresse
+                            </p>
+                            <p className="text-lg font-bold text-foreground flex items-center gap-2 group-hover:text-primary transition-colors">
+                              <MapPin className="w-4 h-4 text-primary opacity-60" />
+                              {profile.adress}
+                            </p>
+                          </div>
+                        </div>
+                      </motion.div>
                     )}
                   </div>
                 )}

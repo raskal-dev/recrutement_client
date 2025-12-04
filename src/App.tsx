@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard'
 import Profile from './pages/Profile'
 import OfferDetail from './pages/OfferDetail'
 import CreateOffer from './pages/CreateOffer'
+import AIAnalyzeCV from './pages/AIAnalyzeCV'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
@@ -59,6 +60,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <CreateOffer />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/ai/analyze-cv"
+            element={
+              <ProtectedRoute>
+                <AIAnalyzeCV />
               </ProtectedRoute>
             }
           />

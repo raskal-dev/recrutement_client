@@ -1,9 +1,6 @@
-import { openai } from '@ai-sdk/openai'
-import { anthropic } from '@ai-sdk/anthropic'
-import { generateText } from 'ai'
+import api from './api'
 
-// Configuration pour OpenRouter (via proxy ou directement)
-const AI_SERVICE_URL = import.meta.env.VITE_AI_SERVICE_URL || 'http://localhost:8000'
+// Configuration - Le frontend passe par le backend Express qui proxy vers le service IA
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system'
@@ -12,52 +9,29 @@ export interface ChatMessage {
 
 export async function chatWithAI(messages: ChatMessage[], model?: string) {
   try {
-    const response = await fetch(`${AI_SERVICE_URL}/chat`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        messages,
-        model,
-        temperature: 0.7,
-        max_tokens: 1000,
-      }),
+    const response = await api.post('/ai/chat', {
+      messages,
+      model,
+      temperature: 0.7,
+      max_tokens: 1000,
     })
-
-    if (!response.ok) {
-      throw new Error(`Erreur API: ${response.statusText}`)
-    }
-
-    const data = await response.json()
-    return data
-  } catch (error) {
+    return response.data
+  } catch (error: any) {
     console.error('Erreur lors de la communication avec l\'IA:', error)
-    throw error
+    throw new Error(error?.response?.data?.message || 'Erreur lors de la communication avec l\'IA')
   }
 }
 
 export async function analyzeCV(cvText: string, jobDescription?: string) {
   try {
-    const response = await fetch(`${AI_SERVICE_URL}/analyze-cv`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        cv_text: cvText,
-        job_description: jobDescription,
-      }),
+    const response = await api.post('/ai/analyze-cv', {
+      cv_text: cvText,
+      job_description: jobDescription,
     })
-
-    if (!response.ok) {
-      throw new Error(`Erreur API: ${response.statusText}`)
-    }
-
-    return await response.json()
-  } catch (error) {
+    return response.data
+  } catch (error: any) {
     console.error('Erreur lors de l\'analyse du CV:', error)
-    throw error
+    throw new Error(error?.response?.data?.message || 'Erreur lors de l\'analyse du CV')
   }
 }
 
@@ -68,27 +42,16 @@ export async function generateJobDescription(
   skills: string[]
 ) {
   try {
-    const response = await fetch(`${AI_SERVICE_URL}/generate-job-description`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        title,
-        company,
-        requirements,
-        skills,
-      }),
+    const response = await api.post('/ai/generate-job-description', {
+      title,
+      company,
+      requirements,
+      skills,
     })
-
-    if (!response.ok) {
-      throw new Error(`Erreur API: ${response.statusText}`)
-    }
-
-    return await response.json()
-  } catch (error) {
+    return response.data
+  } catch (error: any) {
     console.error('Erreur lors de la génération de la description:', error)
-    throw error
+    throw new Error(error?.response?.data?.message || 'Erreur lors de la génération de la description')
   }
 }
 

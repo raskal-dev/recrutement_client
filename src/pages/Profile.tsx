@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { CardHoverEffect } from '@/components/magic/CardHoverEffect'
 import { GlowCard } from '@/components/magic/GlowCard'
 import { AnimatedGradient } from '@/components/magic/AnimatedGradient'
+import { ExperienceForm } from '@/components/experiences/ExperienceForm'
 import {
   User,
   Mail,
@@ -21,11 +22,13 @@ import {
   X,
   Plus,
   Trash2,
-  Sparkles
+  Sparkles,
+  Brain,
 } from 'lucide-react'
 import api from '@/lib/api'
 import { useToast } from '@/components/ui/use-toast'
 import { useAuthStore } from '@/store/useAuthStore'
+import { useNavigate } from 'react-router-dom'
 
 interface Competence {
   id: number
@@ -61,7 +64,8 @@ const profileSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileSchema>
 
 export default function Profile() {
-  const { user: authUser, setUser } = useAuthStore()
+  const navigate = useNavigate()
+  const { setUser } = useAuthStore()
   const { toast } = useToast()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [competences, setCompetences] = useState<Competence[]>([])
@@ -70,6 +74,9 @@ export default function Profile() {
   const [isEditing, setIsEditing] = useState(false)
   const [showAddCompetence, setShowAddCompetence] = useState(false)
   const [selectedCompetences, setSelectedCompetences] = useState<number[]>([])
+  const [showExperienceForm, setShowExperienceForm] = useState(false)
+  const [editingExperience, setEditingExperience] = useState<Experience | null>(null)
+  const [experienceLoading, setExperienceLoading] = useState(false)
 
   const {
     register,
@@ -103,7 +110,14 @@ export default function Profile() {
     try {
       setLoading(true)
       const res = await api.get('/users/profile')
-      setProfile(res.data.data)
+      const profileData = res.data.data
+      setProfile(profileData)
+      
+      // Les expériences et compétences sont maintenant incluses dans le profil depuis le backend
+      // Pas besoin de setExperiences car elles sont dans profile.Experiences
+      if (profileData.Competences) {
+        setCompetences(profileData.Competences)
+      }
     } catch (error: any) {
       toast({
         title: 'Erreur',
@@ -163,6 +177,60 @@ export default function Profile() {
       toast({
         title: 'Erreur',
         description: error?.response?.data?.message || 'Impossible d\'ajouter les compétences',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleExperienceSubmit = async (data: {
+    title: string
+    description: string
+    startDate: string
+    endDate: string
+  }) => {
+    try {
+      setExperienceLoading(true)
+      if (editingExperience) {
+        // TODO: Implémenter la modification quand l'endpoint sera disponible
+        toast({
+          title: 'Modification',
+          description: 'La modification des expériences sera bientôt disponible.',
+        })
+      } else {
+        await api.post('/experiences', data)
+        await loadProfile()
+        setShowExperienceForm(false)
+        setEditingExperience(null)
+        toast({
+          title: 'Expérience ajoutée',
+          description: 'Votre expérience a été ajoutée avec succès.',
+        })
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Erreur',
+        description: error?.response?.data?.message || 'Impossible d\'ajouter l\'expérience',
+        variant: 'destructive',
+      })
+    } finally {
+      setExperienceLoading(false)
+    }
+  }
+
+  const handleDeleteExperience = async (experienceId: number) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette expérience ?')) return
+
+    try {
+      await api.delete(`/experiences/${experienceId}`)
+      await loadProfile()
+      toast({
+        title: 'Expérience supprimée',
+        description: 'Votre expérience a été supprimée avec succès.',
+      })
+    } catch (error: any) {
+      toast({
+        title: 'Erreur',
+        description: error?.response?.data?.message || 'Impossible de supprimer l\'expérience',
         variant: 'destructive',
       })
     }
@@ -395,6 +463,24 @@ export default function Profile() {
               </GlowCard>
             </CardHoverEffect>
 
+            {/* IA Tools */}
+            <CardHoverEffect>
+              <GlowCard className="p-6">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Brain className="w-5 h-5 text-primary" />
+                  Outils IA
+                </h3>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => navigate('/ai/analyze-cv')}
+                >
+                  <Brain className="w-4 h-4 mr-2" />
+                  Analyser mon CV
+                </Button>
+              </GlowCard>
+            </CardHoverEffect>
+
             {/* Expériences */}
             <CardHoverEffect>
               <GlowCard className="p-6">
@@ -403,7 +489,14 @@ export default function Profile() {
                     <Calendar className="w-5 h-5 text-primary" />
                     Expériences professionnelles
                   </h3>
-                  <Button size="sm" variant="outline">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setEditingExperience(null)
+                      setShowExperienceForm(true)
+                    }}
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Ajouter
                   </Button>
@@ -436,7 +529,11 @@ export default function Profile() {
                               </span>
                             </div>
                           </div>
-                          <Button size="sm" variant="ghost">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDeleteExperience(exp.id)}
+                          >
                             <Trash2 className="w-4 h-4 text-destructive" />
                           </Button>
                         </div>
@@ -453,6 +550,20 @@ export default function Profile() {
           </div>
         </div>
       </div>
+
+      {/* Experience Form Dialog */}
+      <ExperienceForm
+        open={showExperienceForm}
+        onOpenChange={setShowExperienceForm}
+        onSubmit={handleExperienceSubmit}
+        defaultValues={editingExperience ? {
+          title: editingExperience.title,
+          description: editingExperience.description,
+          startDate: editingExperience.startDate.split('T')[0],
+          endDate: editingExperience.endDate.split('T')[0],
+        } : undefined}
+        loading={experienceLoading}
+      />
     </div>
   )
 }

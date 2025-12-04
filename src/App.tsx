@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { useEffect } from 'react'
 import { Toaster } from '@/components/ui/toaster'
 import Landing from './pages/Landing'
 import Dashboard from './pages/Dashboard'
@@ -14,12 +15,26 @@ import { useInitAuth } from './hooks/useInitAuth'
 import { useAuthStore } from './store/useAuthStore'
 import './App.css'
 
-function App() {
+// Composant interne qui utilise useInitAuth (doit être dans le Router)
+function AppContent() {
   const { loading } = useInitAuth()
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const logout = useAuthStore((s) => s.logout)
+
+  // Écouter les événements de déconnexion depuis l'intercepteur axios
+  useEffect(() => {
+    const handleLogout = () => {
+      logout()
+    }
+
+    window.addEventListener('auth:logout', handleLogout as EventListener)
+    return () => {
+      window.removeEventListener('auth:logout', handleLogout as EventListener)
+    }
+  }, [logout])
 
   return (
-    <BrowserRouter>
+    <>
       {isAuthenticated && <Navbar />}
       {loading ? (
         <div className="flex h-screen items-center justify-center">
@@ -76,6 +91,14 @@ function App() {
         </Routes>
       )}
       <Toaster />
+    </>
+  )
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
     </BrowserRouter>
   )
 }

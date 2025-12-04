@@ -37,7 +37,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { useNavigate } from 'react-router-dom'
 
 interface Competence {
-  id: number
+  id: string
   name: string
 }
 
@@ -79,7 +79,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [showAddCompetence, setShowAddCompetence] = useState(false)
-  const [selectedCompetences, setSelectedCompetences] = useState<number[]>([])
+  const [selectedCompetences, setSelectedCompetences] = useState<string[]>([])
   const [showExperienceForm, setShowExperienceForm] = useState(false)
   const [editingExperience, setEditingExperience] = useState<Experience | null>(null)
   const [experienceLoading, setExperienceLoading] = useState(false)

@@ -8,6 +8,7 @@ import OfferDetail from './pages/OfferDetail'
 import CreateOffer from './pages/CreateOffer'
 import AIAnalyzeCV from './pages/AIAnalyzeCV'
 import MyApplications from './pages/MyApplications'
+import OfferApplications from './pages/OfferApplications'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
@@ -92,6 +93,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <MyApplications />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/offers/:offerId/applications"
+            element={
+              <ProtectedRoute>
+                <OfferApplications />
               </ProtectedRoute>
             }
           />

@@ -238,13 +238,25 @@ export default function Dashboard() {
                     </div>
                   )}
 
-                  <Button 
-                    className="w-full group-hover:bg-primary/90 transition-all" 
-                    variant="default"
-                    onClick={() => navigate(`/offers/${offer.id}`)}
-                  >
-                    Voir l'offre
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      className="flex-1 group-hover:bg-primary/90 transition-all" 
+                      variant="default"
+                      onClick={() => navigate(`/offers/${offer.id}`)}
+                    >
+                      Voir l'offre
+                    </Button>
+                    {isRecruiter && (
+                      <Button 
+                        variant="outline"
+                        onClick={() => navigate(`/offers/${offer.id}/applications`)}
+                        className="flex items-center gap-2"
+                      >
+                        <FileText className="w-4 h-4" />
+                        Candidatures
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </motion.div>
               </CardHoverEffect>

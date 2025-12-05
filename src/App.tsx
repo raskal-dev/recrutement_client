@@ -9,6 +9,7 @@ import CreateOffer from './pages/CreateOffer'
 import AIAnalyzeCV from './pages/AIAnalyzeCV'
 import MyApplications from './pages/MyApplications'
 import OfferApplications from './pages/OfferApplications'
+import AdminDashboard from './pages/AdminDashboard'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
@@ -101,6 +102,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <OfferApplications />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <AdminDashboard />
               </ProtectedRoute>
             }
           />

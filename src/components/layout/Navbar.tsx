@@ -42,6 +42,7 @@ export function Navbar() {
     { path: '/', label: 'Accueil', icon: Home },
     { path: '/profile', label: 'Profil', icon: User },
     ...(user?.role === 'student' ? [{ path: '/applications', label: 'Mes candidatures', icon: FileText }] : []),
+    ...(user?.role === 'admin' ? [{ path: '/admin', label: 'Administration', icon: Shield }] : []),
   ]
 
   return (
@@ -144,6 +145,12 @@ export function Navbar() {
                       <User className="mr-2 h-4 w-4" />
                       <span>Mon Profil</span>
                     </DropdownMenuItem>
+                    {user.role === 'admin' && (
+                      <DropdownMenuItem onClick={() => navigate('/admin')}>
+                        <Shield className="mr-2 h-4 w-4" />
+                        <span>Administration</span>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem>
                       <Settings className="mr-2 h-4 w-4" />
                       <span>Paramètres</span>

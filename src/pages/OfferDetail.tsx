@@ -19,6 +19,8 @@ import {
   Bookmark,
   Share2,
   FileText,
+  CheckCircle2,
+  Loader2,
 } from 'lucide-react'
 import api from '@/lib/api'
 import { useToast } from '@/components/ui/use-toast'
@@ -46,12 +48,16 @@ export default function OfferDetail() {
   const { user } = useAuthStore()
   const [offer, setOffer] = useState<Offer | null>(null)
   const [loading, setLoading] = useState(true)
+  const [applying, setApplying] = useState(false)
+  const [hasApplied, setHasApplied] = useState(false)
+  const [applicationStatus, setApplicationStatus] = useState<string | null>(null)
 
   useEffect(() => {
     if (id) {
       loadOffer()
+      checkApplication()
     }
-  }, [id])
+  }, [id, user])
 
   const loadOffer = async () => {
     try {
@@ -70,11 +76,65 @@ export default function OfferDetail() {
     }
   }
 
-  const handleApply = () => {
-    toast({
-      title: 'Candidature envoyée',
-      description: 'Votre candidature a été transmise au recruteur.',
-    })
+  const checkApplication = async () => {
+    if (!user || !id) return
+    
+    try {
+      const res = await api.get('/applications/user')
+      const applications = res.data.data || []
+      const application = applications.find((app: any) => app.OfferId === id)
+      
+      if (application) {
+        setHasApplied(true)
+        setApplicationStatus(application.status)
+      }
+    } catch (error) {
+      // Ignore errors, user might not have applications
+    }
+  }
+
+  const handleApply = async () => {
+    if (!id || !user) {
+      toast({
+        title: 'Erreur',
+        description: 'Vous devez être connecté pour postuler',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (hasApplied) {
+      toast({
+        title: 'Déjà postulé',
+        description: 'Vous avez déjà postulé à cette offre',
+        variant: 'default',
+      })
+      return
+    }
+
+    try {
+      setApplying(true)
+      await api.post('/applications', {
+        OfferId: id,
+        coverLetter: '',
+      })
+      
+      setHasApplied(true)
+      setApplicationStatus('pending')
+      
+      toast({
+        title: 'Candidature envoyée',
+        description: 'Votre candidature a été transmise au recruteur.',
+      })
+    } catch (error: any) {
+      toast({
+        title: 'Erreur',
+        description: error?.response?.data?.message || 'Impossible d\'envoyer la candidature',
+        variant: 'destructive',
+      })
+    } finally {
+      setApplying(false)
+    }
   }
 
   if (loading) {
@@ -217,22 +277,46 @@ export default function OfferDetail() {
                   </div>
 
                   <div className="space-y-3">
-                    <Button
-                      className="w-full group relative overflow-hidden"
-                      size="lg"
-                      onClick={handleApply}
-                    >
-                      <span className="relative z-10 flex items-center justify-center">
-                        <Send className="w-4 h-4 mr-2 group-hover:translate-x-1 transition-transform" />
-                        Postuler maintenant
-                      </span>
-                      <motion.div
-                        className="absolute inset-0 bg-gradient-to-r from-primary/80 to-primary"
-                        initial={{ x: '-100%' }}
-                        whileHover={{ x: 0 }}
-                        transition={{ duration: 0.3 }}
-                      />
-                    </Button>
+                    {hasApplied ? (
+                      <div className="w-full p-4 rounded-lg border-2 border-primary/30 bg-primary/5">
+                        <div className="flex items-center justify-center gap-2 text-primary font-medium">
+                          <CheckCircle2 className="w-5 h-5" />
+                          <span>
+                            {applicationStatus === 'pending' && 'Candidature en attente'}
+                            {applicationStatus === 'reviewed' && 'Candidature en cours d\'examen'}
+                            {applicationStatus === 'accepted' && 'Candidature acceptée ✓'}
+                            {applicationStatus === 'rejected' && 'Candidature refusée'}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <Button
+                        className="w-full group relative overflow-hidden"
+                        size="lg"
+                        onClick={handleApply}
+                        disabled={applying || user?.role !== 'student'}
+                      >
+                        <span className="relative z-10 flex items-center justify-center">
+                          {applying ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Envoi en cours...
+                            </>
+                          ) : (
+                            <>
+                              <Send className="w-4 h-4 mr-2 group-hover:translate-x-1 transition-transform" />
+                              Postuler maintenant
+                            </>
+                          )}
+                        </span>
+                        <motion.div
+                          className="absolute inset-0 bg-gradient-to-r from-primary/80 to-primary"
+                          initial={{ x: '-100%' }}
+                          whileHover={{ x: 0 }}
+                          transition={{ duration: 0.3 }}
+                        />
+                      </Button>
+                    )}
 
                     <div className="flex gap-2">
                       <Button

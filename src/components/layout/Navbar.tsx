@@ -41,6 +41,7 @@ export function Navbar() {
   const navLinks = [
     { path: '/', label: 'Accueil', icon: Home },
     { path: '/profile', label: 'Profil', icon: User },
+    ...(user?.role === 'student' ? [{ path: '/applications', label: 'Mes candidatures', icon: FileText }] : []),
   ]
 
   return (

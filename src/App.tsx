@@ -7,6 +7,7 @@ import Profile from './pages/Profile'
 import OfferDetail from './pages/OfferDetail'
 import CreateOffer from './pages/CreateOffer'
 import AIAnalyzeCV from './pages/AIAnalyzeCV'
+import MyApplications from './pages/MyApplications'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
@@ -83,6 +84,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <AIAnalyzeCV />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/applications"
+            element={
+              <ProtectedRoute>
+                <MyApplications />
               </ProtectedRoute>
             }
           />

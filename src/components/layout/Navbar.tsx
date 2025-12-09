@@ -21,6 +21,7 @@ import {
   X,
   Home,
   FileText,
+  Shield,
 } from 'lucide-react'
 import { useState } from 'react'
 

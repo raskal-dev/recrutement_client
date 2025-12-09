@@ -24,6 +24,12 @@ import {
 import api from '@/lib/api'
 import { useToast } from '@/components/ui/use-toast'
 import { useAuthStore } from '@/store/useAuthStore'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 interface User {
   id: string
@@ -70,6 +76,9 @@ export default function AdminDashboard() {
   const [applications, setApplications] = useState<Application[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'offers' | 'applications'>('overview')
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null)
+  const [deletingOfferId, setDeletingOfferId] = useState<string | null>(null)
+  const [updatingAppId, setUpdatingAppId] = useState<string | null>(null)
 
   useEffect(() => {
     if (user?.role !== 'admin') {
@@ -99,6 +108,61 @@ export default function AdminDashboard() {
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!window.confirm('Supprimer cet utilisateur ?')) return
+    try {
+      setDeletingUserId(userId)
+      await api.delete(`/users/${userId}`)
+      toast({ title: 'Utilisateur supprimé' })
+      setUsers((prev) => prev.filter((u) => u.id !== userId))
+    } catch (error: any) {
+      toast({
+        title: 'Erreur',
+        description: error?.response?.data?.message || 'Impossible de supprimer cet utilisateur',
+        variant: 'destructive',
+      })
+    } finally {
+      setDeletingUserId(null)
+    }
+  }
+
+  const handleDeleteOffer = async (offerId: string) => {
+    if (!window.confirm('Supprimer cette offre ?')) return
+    try {
+      setDeletingOfferId(offerId)
+      await api.delete(`/offers/${offerId}`)
+      toast({ title: 'Offre supprimée' })
+      setOffers((prev) => prev.filter((o) => o.id !== offerId))
+    } catch (error: any) {
+      toast({
+        title: 'Erreur',
+        description: error?.response?.data?.message || 'Impossible de supprimer cette offre',
+        variant: 'destructive',
+      })
+    } finally {
+      setDeletingOfferId(null)
+    }
+  }
+
+  const handleUpdateApplicationStatus = async (applicationId: string, status: Application['status']) => {
+    try {
+      setUpdatingAppId(applicationId)
+      await api.put(`/applications/${applicationId}/status`, { status })
+      toast({ title: 'Statut mis à jour', description: `La candidature est maintenant "${status}"` })
+      setApplications((prev) =>
+        prev.map((a) => (a.id === applicationId ? { ...a, status } : a))
+      )
+    } catch (error: any) {
+      toast({
+        title: 'Erreur',
+        description: error?.response?.data?.message || 'Impossible de mettre à jour le statut',
+        variant: 'destructive',
+      })
+    } finally {
+      setUpdatingAppId(null)
     }
   }
 
@@ -320,16 +384,11 @@ export default function AdminDashboard() {
                             <Button
                               size="sm"
                               variant="destructive"
-                              onClick={() => {
-                                // TODO: Implémenter la suppression
-                                toast({
-                                  title: 'Fonctionnalité à venir',
-                                  description: 'La suppression sera disponible bientôt.',
-                                })
-                              }}
+                              onClick={() => handleDeleteUser(userItem.id)}
+                              disabled={deletingUserId === userItem.id}
                             >
                               <Trash2 className="w-4 h-4 mr-2" />
-                              Supprimer
+                              {deletingUserId === userItem.id ? 'Suppression...' : 'Supprimer'}
                             </Button>
                           )}
                         </div>
@@ -399,6 +458,15 @@ export default function AdminDashboard() {
                               <FileText className="w-4 h-4 mr-2" />
                               Candidatures
                             </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDeleteOffer(offer.id)}
+                              disabled={deletingOfferId === offer.id}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              {deletingOfferId === offer.id ? 'Suppression...' : 'Supprimer'}
+                            </Button>
                           </div>
                         </div>
                       </GlowCard>
@@ -466,20 +534,27 @@ export default function AdminDashboard() {
                               })}
                             </p>
                           </div>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              // TODO: Naviguer vers la page de détail de candidature
-                              toast({
-                                title: 'Fonctionnalité à venir',
-                                description: 'La vue détaillée sera disponible bientôt.',
-                              })
-                            }}
-                          >
-                            <Eye className="w-4 h-4 mr-2" />
-                            Voir
-                          </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="sm" variant="outline">
+                              Statut
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {(['pending', 'reviewed', 'accepted', 'rejected'] as Application['status'][]).map((statusOption) => (
+                              <DropdownMenuItem
+                                key={statusOption}
+                                onClick={() => handleUpdateApplicationStatus(application.id, statusOption)}
+                                disabled={updatingAppId === application.id}
+                              >
+                                {statusOption === 'pending' && 'En attente'}
+                                {statusOption === 'reviewed' && 'Examinée'}
+                                {statusOption === 'accepted' && 'Acceptée'}
+                                {statusOption === 'rejected' && 'Refusée'}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                         </div>
                       </GlowCard>
                     </CardHoverEffect>

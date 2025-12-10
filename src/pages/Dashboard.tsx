@@ -32,6 +32,10 @@ interface Offer {
   localisation: string
   contract: string
   createdAt: string
+  matchingScore?: number
+  matchingCompetences?: { id: string; name: string }[]
+  missingCompetences?: { id: string; name: string }[]
+  Competences?: { id: string; name: string }[]
   User?: {
     name: string
   }
@@ -48,6 +52,7 @@ export default function Dashboard() {
 
   const isRecruiter = user?.role === 'entreprise'
   const isAdmin = user?.role === 'admin'
+  const isStudent = user?.role === 'student'
 
   useEffect(() => {
     loadOffers()
@@ -56,8 +61,15 @@ export default function Dashboard() {
   const loadOffers = async () => {
     try {
       setLoading(true)
-      const res = await api.get('/offers')
-      setOffers(res.data.data || [])
+      // Pour les étudiants, utiliser l'endpoint de matching qui inclut les scores
+      if (isStudent) {
+        const res = await api.get('/matching/offers')
+        setOffers(res.data.data || [])
+      } else {
+        // Pour les recruteurs et admins, utiliser l'endpoint normal
+        const res = await api.get('/offers')
+        setOffers(res.data.data || [])
+      }
     } catch (error: any) {
       toast({
         title: 'Erreur',
@@ -212,7 +224,60 @@ export default function Dashboard() {
                     <h3 className="text-xl font-semibold group-hover:text-primary transition-colors">
                       {offer.title}
                     </h3>
+                    {isStudent && offer.matchingScore !== undefined && (
+                      <Badge 
+                        variant={offer.matchingScore >= 70 ? "default" : offer.matchingScore >= 50 ? "secondary" : "outline"}
+                        className="ml-2 flex items-center gap-1"
+                      >
+                        <Target className="w-3 h-3" />
+                        {offer.matchingScore}%
+                      </Badge>
+                    )}
                   </div>
+
+                  {isStudent && offer.matchingScore !== undefined && offer.matchingScore < 100 && (
+                    <div className="p-3 rounded-lg bg-muted/50 border border-primary/20">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Target className="w-4 h-4 text-primary" />
+                        <span className="text-sm font-medium">Correspondance</span>
+                      </div>
+                      {offer.matchingCompetences && offer.matchingCompetences.length > 0 && (
+                        <div className="mb-2">
+                          <div className="flex items-center gap-1 mb-1">
+                            <CheckCircle2 className="w-3 h-3 text-green-500" />
+                            <span className="text-xs text-muted-foreground">Compétences correspondantes:</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {offer.matchingCompetences.map((comp) => (
+                              <Badge key={comp.id} variant="secondary" className="text-xs">
+                                {comp.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {offer.missingCompetences && offer.missingCompetences.length > 0 && (
+                        <div>
+                          <div className="flex items-center gap-1 mb-1">
+                            <XCircle className="w-3 h-3 text-orange-500" />
+                            <span className="text-xs text-muted-foreground">Compétences manquantes:</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {offer.missingCompetences.slice(0, 3).map((comp) => (
+                              <Badge key={comp.id} variant="outline" className="text-xs">
+                                {comp.name}
+                              </Badge>
+                            ))}
+                            {offer.missingCompetences.length > 3 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{offer.missingCompetences.length - 3}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <p className="text-muted-foreground line-clamp-3">
                     {offer.description}

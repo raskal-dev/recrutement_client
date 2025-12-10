@@ -22,6 +22,23 @@ export async function chatWithAI(messages: ChatMessage[], model?: string) {
   }
 }
 
+export async function extractTextFromFile(file: File) {
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    const response = await api.post('/ai/extract-text', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    return response.data
+  } catch (error: any) {
+    console.error('Erreur lors de l\'extraction du texte:', error)
+    throw new Error(error?.response?.data?.message || 'Erreur lors de l\'extraction du texte')
+  }
+}
+
 export async function analyzeCV(cvText: string, jobDescription?: string) {
   try {
     const response = await api.post('/ai/analyze-cv', {

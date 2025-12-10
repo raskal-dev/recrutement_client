@@ -7,6 +7,7 @@ import Profile from './pages/Profile'
 import OfferDetail from './pages/OfferDetail'
 import CreateOffer from './pages/CreateOffer'
 import AIAnalyzeCV from './pages/AIAnalyzeCV'
+import AIChat from './pages/AIChat'
 import MyApplications from './pages/MyApplications'
 import OfferApplications from './pages/OfferApplications'
 import AdminDashboard from './pages/AdminDashboard'
@@ -14,6 +15,7 @@ import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { Navbar } from './components/layout/Navbar'
+import { AIChatWidget } from './components/chat/AIChatWidget'
 import { useInitAuth } from './hooks/useInitAuth'
 import { useAuthStore } from './store/useAuthStore'
 import './App.css'
@@ -39,6 +41,7 @@ function AppContent() {
   return (
     <>
       {isAuthenticated && <Navbar />}
+      {isAuthenticated && <AIChatWidget />}
       {loading ? (
         <div className="flex h-screen items-center justify-center">
           <span className="text-sm text-muted-foreground">Chargement...</span>
@@ -86,6 +89,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <AIAnalyzeCV />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/ai/chat"
+            element={
+              <ProtectedRoute>
+                <AIChat />
               </ProtectedRoute>
             }
           />

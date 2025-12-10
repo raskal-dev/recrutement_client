@@ -1,7 +1,17 @@
-import { useState, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { CardHoverEffect } from '@/components/magic/CardHoverEffect'
 import { GlowCard } from '@/components/magic/GlowCard'
@@ -19,14 +29,17 @@ import {
   Upload,
   X,
   File,
+  Sparkles as SparklesIcon,
 } from 'lucide-react'
-import { analyzeCV } from '@/lib/ai'
+import { analyzeCV, extractTextFromFile } from '@/lib/ai'
 import { useToast } from '@/components/ui/use-toast'
-import { extractTextFromFile } from '@/utils/fileExtractor'
+import { useAuthStore } from '@/store/useAuthStore'
+import api from '@/lib/api'
 
 export default function AIAnalyzeCV() {
   const navigate = useNavigate()
   const { toast } = useToast()
+  const { user } = useAuthStore()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [cvText, setCvText] = useState('')
   const [jobDescription, setJobDescription] = useState('')
@@ -35,6 +48,82 @@ export default function AIAnalyzeCV() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [extracting, setExtracting] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
+  const [profileCompetences, setProfileCompetences] = useState<{ id: string; name: string }[]>([])
+  const [availableCompetences, setAvailableCompetences] = useState<{ id: string; name: string }[]>([])
+  const [suggestedCompetences, setSuggestedCompetences] = useState<{ id: string; name: string }[]>([])
+  const [addingCompetences, setAddingCompetences] = useState(false)
+  const [ownershipVerified, setOwnershipVerified] = useState(true)
+  const [ownershipMessage, setOwnershipMessage] = useState<string | null>(null)
+  const [showAnalysisModal, setShowAnalysisModal] = useState(false)
+  const [showSuggestionsModal, setShowSuggestionsModal] = useState(false)
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const res = await api.get('/users/profile')
+        const data = res.data.data
+        setProfileCompetences(data?.Competences || [])
+      } catch (error: any) {
+        console.error('Erreur profil', error)
+      }
+    }
+
+    const loadCompetences = async () => {
+      try {
+        const res = await api.get('/competences')
+        setAvailableCompetences(res.data.data || [])
+      } catch (error: any) {
+        console.error('Erreur competences', error)
+      }
+    }
+
+    loadProfile()
+    loadCompetences()
+  }, [])
+
+  const lowerCvText = useMemo(() => cvText.toLowerCase(), [cvText])
+
+  const verifyOwnership = (text: string) => {
+    if (!user) {
+      setOwnershipVerified(true)
+      setOwnershipMessage(null)
+      return
+    }
+    const emailMatch = user.email && text.toLowerCase().includes(user.email.toLowerCase())
+    const nameMatch = user.name && text.toLowerCase().includes(user.name.toLowerCase())
+    const ok = emailMatch || nameMatch
+    setOwnershipVerified(ok)
+    setOwnershipMessage(
+      ok
+        ? null
+        : "Le CV importé ne semble pas correspondre à votre compte (nom ou email introuvable)."
+    )
+    if (!ok) {
+      toast({
+        title: 'Vérification du CV',
+        description:
+          'Nom ou email du CV introuvable. Veuillez vérifier que ce CV est bien le vôtre.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const computeSuggestedCompetences = (text: string) => {
+    if (!text) {
+      setSuggestedCompetences([])
+      return
+    }
+    const lower = text.toLowerCase()
+    const ownedIds = new Set(profileCompetences.map((c) => c.id))
+    const found: { id: string; name: string }[] = []
+    availableCompetences.forEach((comp) => {
+      const nameLower = comp.name.toLowerCase()
+      if (lower.includes(nameLower) && !ownedIds.has(comp.id)) {
+        found.push(comp)
+      }
+    })
+    setSuggestedCompetences(found)
+  }
 
   const handleFileSelect = async (file: File) => {
     if (!file) return
@@ -74,10 +163,13 @@ export default function AIAnalyzeCV() {
       setExtracting(true)
       setUploadedFile(file)
       const result = await extractTextFromFile(file)
-      setCvText(result.text)
+      const extracted = result?.data
+      setCvText(extracted?.text || '')
+      verifyOwnership(extracted?.text || '')
+      computeSuggestedCompetences(extracted?.text || '')
       toast({
         title: 'Fichier chargé',
-        description: `Texte extrait de ${result.fileName} (${result.text.length} caractères)`,
+        description: `Texte extrait de ${extracted?.file_name ?? 'fichier'} (${extracted?.character_count ?? 0} caractères)`,
       })
     } catch (error: any) {
       toast({
@@ -120,6 +212,9 @@ export default function AIAnalyzeCV() {
   const handleRemoveFile = () => {
     setUploadedFile(null)
     setCvText('')
+    setSuggestedCompetences([])
+    setOwnershipVerified(true)
+    setOwnershipMessage(null)
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
@@ -134,15 +229,26 @@ export default function AIAnalyzeCV() {
       })
       return
     }
+    if (!ownershipVerified) {
+      toast({
+        title: 'Vérification requise',
+        description: 'Le CV ne correspond pas à votre compte (nom/email manquant).',
+        variant: 'destructive',
+      })
+      return
+    }
 
     try {
       setLoading(true)
       const result = await analyzeCV(cvText, jobDescription || undefined)
-      setAnalysis(result.content)
+      setAnalysis(result?.data?.content || '')
       toast({
         title: 'Analyse terminée',
         description: 'Votre CV a été analysé avec succès.',
       })
+      if ((result?.data?.content || '').length > 0) {
+        setShowAnalysisModal(true)
+      }
     } catch (error: any) {
       toast({
         title: 'Erreur',
@@ -155,9 +261,10 @@ export default function AIAnalyzeCV() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20 relative">
-      <AnimatedGradient />
-      <div className="container mx-auto max-w-4xl px-4 py-8 relative z-10">
+    <>
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20 relative">
+        <AnimatedGradient />
+        <div className="container mx-auto max-w-4xl px-4 py-8 relative z-10">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -302,32 +409,39 @@ export default function AIAnalyzeCV() {
               </GlowCard>
             </CardHoverEffect>
 
-            <Button
-              onClick={handleAnalyze}
-              disabled={loading || !cvText.trim()}
-              size="lg"
-              className="w-full group relative overflow-hidden"
-            >
-              <span className="relative z-10 flex items-center justify-center">
-                {loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Analyse en cours...
-                  </>
-                ) : (
-                  <>
-                    <Zap className="w-4 h-4 mr-2 group-hover:animate-pulse" />
-                    Analyser mon CV
-                  </>
-                )}
-              </span>
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-primary/80 to-primary"
-                initial={{ x: '-100%' }}
-                whileHover={{ x: 0 }}
-                transition={{ duration: 0.3 }}
-              />
-            </Button>
+            <div className="space-y-3">
+              {!ownershipVerified && ownershipMessage && (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                  {ownershipMessage}
+                </div>
+              )}
+              <Button
+                onClick={handleAnalyze}
+                disabled={loading || !cvText.trim() || !ownershipVerified}
+                size="lg"
+                className="w-full group relative overflow-hidden"
+              >
+                <span className="relative z-10 flex items-center justify-center">
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Analyse en cours...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4 mr-2 group-hover:animate-pulse" />
+                      Analyser mon CV
+                    </>
+                  )}
+                </span>
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-primary/80 to-primary"
+                  initial={{ x: '-100%' }}
+                  whileHover={{ x: 0 }}
+                  transition={{ duration: 0.3 }}
+                />
+              </Button>
+            </div>
           </div>
 
           {/* Results Section */}
@@ -351,19 +465,52 @@ export default function AIAnalyzeCV() {
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="prose prose-sm max-w-none"
+                    className="space-y-4"
                   >
-                    <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 mb-4">
+                    <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
                       <div className="flex items-start gap-2">
                         <CheckCircle2 className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <div>
-                          <h3 className="font-semibold mb-2">Analyse complète</h3>
-                          <p className="text-sm text-muted-foreground whitespace-pre-line">
-                            {analysis}
-                          </p>
+                        <div className="space-y-2 w-full">
+                          <div className="flex items-center justify-between gap-2">
+                            <h3 className="font-semibold">Analyse complète</h3>
+                            <Button variant="outline" size="sm" onClick={() => setShowAnalysisModal(true)}>
+                              Voir en grand
+                            </Button>
+                          </div>
+                          <div className="text-sm text-muted-foreground space-y-2 max-h-56 overflow-y-auto pr-1">
+                            {analysis.split('\n').map((line, idx) => {
+                              const trimmed = line.trim()
+                              if (!trimmed) return null
+                              const isBullet = trimmed.startsWith('-') || trimmed.startsWith('*') || trimmed.startsWith('•')
+                              return isBullet ? (
+                                <div key={idx} className="flex items-start gap-2">
+                                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary/70" />
+                                  <span>{trimmed.replace(/^[-*•]\s*/, '')}</span>
+                                </div>
+                              ) : (
+                                <p key={idx} className="leading-relaxed">
+                                  {trimmed}
+                                </p>
+                              )
+                            })}
+                          </div>
                         </div>
                       </div>
                     </div>
+
+                    {suggestedCompetences.length > 0 && (
+                      <div className="p-4 rounded-lg border border-primary/20 bg-primary/5">
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <div className="flex items-center gap-2">
+                            <SparklesIcon className="w-4 h-4 text-primary" />
+                            <h4 className="font-semibold">Compétences détectées manquantes</h4>
+                          </div>
+                          <Button variant="outline" size="sm" onClick={() => setShowSuggestionsModal(true)}>
+                            Voir les suggestions
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </motion.div>
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full py-20 text-center">
@@ -377,8 +524,104 @@ export default function AIAnalyzeCV() {
             </CardHoverEffect>
           </div>
         </div>
+        </div>
       </div>
-    </div>
+
+      <Dialog open={showAnalysisModal} onOpenChange={setShowAnalysisModal}>
+      <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden">
+        <DialogHeader>
+          <DialogTitle>Résultat de l'analyse</DialogTitle>
+          <DialogDescription>
+            Analyse complète générée par l'IA sur votre CV
+          </DialogDescription>
+        </DialogHeader>
+        <div className="overflow-y-auto pr-2 space-y-2 max-h-[60vh]">
+          {analysis &&
+            analysis.split('\n').map((line, idx) => {
+              const trimmed = line.trim()
+              if (!trimmed) return null
+              const isBullet = trimmed.startsWith('-') || trimmed.startsWith('*') || trimmed.startsWith('•')
+              return isBullet ? (
+                <div key={idx} className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary/70" />
+                  <span>{trimmed.replace(/^[-*•]\s*/, '')}</span>
+                </div>
+              ) : (
+                <p key={idx} className="text-sm leading-relaxed text-muted-foreground">
+                  {trimmed}
+                </p>
+              )
+            })}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setShowAnalysisModal(false)}>
+            Fermer
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+      <Dialog open={showSuggestionsModal} onOpenChange={setShowSuggestionsModal}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Compétences détectées dans le CV</DialogTitle>
+          <DialogDescription>
+            Ces compétences apparaissent dans le CV mais pas encore dans votre profil.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          {suggestedCompetences.length === 0 && (
+            <p className="text-sm text-muted-foreground">Aucune compétence manquante détectée.</p>
+          )}
+          {suggestedCompetences.length > 0 && (
+            <>
+              <div className="flex flex-wrap gap-2">
+                {suggestedCompetences.map((comp) => (
+                  <Badge key={comp.id} variant="secondary">
+                    {comp.name}
+                  </Badge>
+                ))}
+              </div>
+              <Button
+                className="w-full"
+                onClick={async () => {
+                  try {
+                    setAddingCompetences(true)
+                    await api.post('/users/competences', {
+                      competenceIds: suggestedCompetences.map((c) => c.id),
+                    })
+                    toast({
+                      title: 'Compétences ajoutées',
+                      description: 'Les compétences détectées ont été ajoutées à votre profil.',
+                    })
+                    setSuggestedCompetences([])
+                  } catch (error: any) {
+                    toast({
+                      title: 'Erreur',
+                      description:
+                        error?.response?.data?.message ||
+                        'Impossible d\'ajouter les compétences détectées',
+                      variant: 'destructive',
+                    })
+                  } finally {
+                    setAddingCompetences(false)
+                  }
+                }}
+                disabled={addingCompetences || suggestedCompetences.length === 0}
+              >
+                {addingCompetences ? 'Ajout...' : 'Ajouter toutes les compétences détectées'}
+              </Button>
+            </>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setShowSuggestionsModal(false)}>
+            Fermer
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   )
 }
 

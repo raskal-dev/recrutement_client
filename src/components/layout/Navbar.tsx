@@ -22,6 +22,7 @@ import {
   Home,
   FileText,
   Shield,
+  MessageSquare,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -41,9 +42,7 @@ export function Navbar() {
 
   const navLinks = [
     { path: '/', label: 'Accueil', icon: Home },
-    { path: '/profile', label: 'Profil', icon: User },
     ...(user?.role === 'student' ? [{ path: '/applications', label: 'Mes candidatures', icon: FileText }] : []),
-    ...(user?.role === 'admin' ? [{ path: '/admin', label: 'Administration', icon: Shield }] : []),
   ]
 
   return (

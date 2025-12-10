@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
@@ -16,23 +16,120 @@ import {
   AlertCircle,
   Loader2,
   Briefcase,
+  Upload,
+  X,
+  File,
 } from 'lucide-react'
 import { analyzeCV } from '@/lib/ai'
 import { useToast } from '@/components/ui/use-toast'
+import { extractTextFromFile } from '@/utils/fileExtractor'
 
 export default function AIAnalyzeCV() {
   const navigate = useNavigate()
   const { toast } = useToast()
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [cvText, setCvText] = useState('')
   const [jobDescription, setJobDescription] = useState('')
   const [loading, setLoading] = useState(false)
   const [analysis, setAnalysis] = useState<string | null>(null)
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [extracting, setExtracting] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
+
+  const handleFileSelect = async (file: File) => {
+    if (!file) return
+
+    // Vérifier le type de fichier
+    const validTypes = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+    ]
+    const validExtensions = ['.pdf', '.docx', '.txt']
+    const fileName = file.name.toLowerCase()
+
+    if (
+      !validTypes.includes(file.type) &&
+      !validExtensions.some((ext) => fileName.endsWith(ext))
+    ) {
+      toast({
+        title: 'Format non supporté',
+        description: 'Veuillez sélectionner un fichier PDF, DOCX ou TXT',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    // Vérifier la taille (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: 'Fichier trop volumineux',
+        description: 'Le fichier ne doit pas dépasser 10MB',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      setExtracting(true)
+      setUploadedFile(file)
+      const result = await extractTextFromFile(file)
+      setCvText(result.text)
+      toast({
+        title: 'Fichier chargé',
+        description: `Texte extrait de ${result.fileName} (${result.text.length} caractères)`,
+      })
+    } catch (error: any) {
+      toast({
+        title: 'Erreur d\'extraction',
+        description: error?.message || 'Impossible d\'extraire le texte du fichier',
+        variant: 'destructive',
+      })
+      setUploadedFile(null)
+    } finally {
+      setExtracting(false)
+    }
+  }
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      handleFileSelect(file)
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+    const file = e.dataTransfer.files[0]
+    if (file) {
+      handleFileSelect(file)
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+  }
+
+  const handleRemoveFile = () => {
+    setUploadedFile(null)
+    setCvText('')
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
 
   const handleAnalyze = async () => {
     if (!cvText.trim()) {
       toast({
         title: 'CV requis',
-        description: 'Veuillez coller le contenu de votre CV',
+        description: 'Veuillez télécharger un fichier CV ou entrer le contenu',
         variant: 'destructive',
       })
       return
@@ -93,19 +190,95 @@ export default function AIAnalyzeCV() {
               <GlowCard className="p-6">
                 <Label htmlFor="cv" className="text-base font-semibold mb-3 flex items-center gap-2">
                   <FileText className="w-5 h-5 text-primary" />
-                  Contenu de votre CV *
+                  Télécharger votre CV *
                 </Label>
-                <textarea
-                  id="cv"
-                  rows={12}
-                  placeholder="Collez ici le contenu de votre CV (expériences, compétences, formations, etc.)"
-                  value={cvText}
-                  onChange={(e) => setCvText(e.target.value)}
-                  className="flex min-h-[200px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
-                />
-                <p className="text-xs text-muted-foreground mt-2">
-                  {cvText.length} caractères
-                </p>
+
+                {!uploadedFile ? (
+                  <div
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-all ${
+                      isDragging
+                        ? 'border-primary bg-primary/5 scale-[1.02]'
+                        : 'border-input hover:border-primary/50 hover:bg-primary/5'
+                    }`}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      id="cv"
+                      accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+                      onChange={handleFileInputChange}
+                      className="hidden"
+                    />
+                    {extracting ? (
+                      <div className="flex flex-col items-center gap-3">
+                        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                        <p className="text-sm text-muted-foreground">
+                          Extraction du texte en cours...
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <Upload className="w-12 h-12 text-primary mx-auto mb-4" />
+                        <p className="text-sm font-medium mb-2">
+                          Glissez-déposez votre CV ici
+                        </p>
+                        <p className="text-xs text-muted-foreground mb-4">
+                          ou
+                        </p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="group"
+                        >
+                          <File className="w-4 h-4 mr-2" />
+                          Sélectionner un fichier
+                        </Button>
+                        <p className="text-xs text-muted-foreground mt-4">
+                          Formats acceptés: PDF, DOCX, TXT (max 10MB)
+                        </p>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 rounded-lg border border-primary/20 bg-primary/5">
+                      <div className="flex items-center gap-3">
+                        <File className="w-5 h-5 text-primary" />
+                        <div>
+                          <p className="text-sm font-medium">{uploadedFile.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {(uploadedFile.size / 1024).toFixed(2)} KB
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleRemoveFile}
+                        className="h-8 w-8 p-0"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block">
+                        Contenu extrait ({cvText.length} caractères)
+                      </Label>
+                      <textarea
+                        rows={8}
+                        value={cvText}
+                        onChange={(e) => setCvText(e.target.value)}
+                        placeholder="Le contenu extrait apparaîtra ici. Vous pouvez le modifier si nécessaire."
+                        className="flex min-h-[150px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+                      />
+                    </div>
+                  </div>
+                )}
               </GlowCard>
             </CardHoverEffect>
 

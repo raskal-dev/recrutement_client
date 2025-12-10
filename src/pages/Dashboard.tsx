@@ -47,6 +47,7 @@ export default function Dashboard() {
   const { toast } = useToast()
 
   const isRecruiter = user?.role === 'entreprise'
+  const isAdmin = user?.role === 'admin'
 
   useEffect(() => {
     loadOffers()
@@ -119,32 +120,34 @@ export default function Dashboard() {
           </div>
         </motion.div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <StatCard
-            title="Offres disponibles"
-            value={offers.length}
-            icon={Briefcase}
-            trend={{ value: 12, isPositive: true }}
-            glowColor="hsl(var(--primary))"
-          />
-          <StatCard
-            title="Nouvelles cette semaine"
-            value={offers.filter(o => {
-              const weekAgo = new Date()
-              weekAgo.setDate(weekAgo.getDate() - 7)
-              return new Date(o.createdAt) > weekAgo
-            }).length}
-            icon={TrendingUp}
-            glowColor="hsl(142, 76%, 36%)"
-          />
-          <StatCard
-            title="Recruteurs actifs"
-            value={new Set(offers.map(o => o.User?.name).filter(Boolean)).size}
-            icon={Users}
-            glowColor="hsl(280, 100%, 70%)"
-          />
-        </div>
+        {/* Stats Cards - Uniquement pour les admins */}
+        {isAdmin && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <StatCard
+              title="Offres disponibles"
+              value={offers.length}
+              icon={Briefcase}
+              trend={{ value: 12, isPositive: true }}
+              glowColor="hsl(var(--primary))"
+            />
+            <StatCard
+              title="Nouvelles cette semaine"
+              value={offers.filter(o => {
+                const weekAgo = new Date()
+                weekAgo.setDate(weekAgo.getDate() - 7)
+                return new Date(o.createdAt) > weekAgo
+              }).length}
+              icon={TrendingUp}
+              glowColor="hsl(142, 76%, 36%)"
+            />
+            <StatCard
+              title="Recruteurs actifs"
+              value={new Set(offers.map(o => o.User?.name).filter(Boolean)).size}
+              icon={Users}
+              glowColor="hsl(280, 100%, 70%)"
+            />
+          </div>
+        )}
 
         {/* Search and Filters */}
         <motion.div

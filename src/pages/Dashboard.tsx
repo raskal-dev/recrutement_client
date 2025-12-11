@@ -18,7 +18,10 @@ import {
   TrendingUp,
   Users,
   FileText,
-  Plus
+  Plus,
+  Target,
+  CheckCircle2,
+  XCircle
 } from 'lucide-react'
 import api from '@/lib/api'
 import { useToast } from '@/components/ui/use-toast'

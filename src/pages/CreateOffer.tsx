@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
@@ -41,6 +41,9 @@ export default function CreateOffer() {
   const [aiLoading, setAiLoading] = useState(false)
   const [requirements, setRequirements] = useState('')
   const [skills, setSkills] = useState('')
+  const [competences, setCompetences] = useState<{ id: string; name: string }[]>([])
+  const [loadingCompetences, setLoadingCompetences] = useState(false)
+  const [selectedCompetenceIds, setSelectedCompetenceIds] = useState<string[]>([])
 
   const {
     register,
@@ -92,10 +95,38 @@ export default function CreateOffer() {
     }
   }
 
+  useEffect(() => {
+    const loadCompetences = async () => {
+      try {
+        setLoadingCompetences(true)
+        const res = await api.get('/competences')
+        setCompetences(res.data.data || [])
+      } catch (error: any) {
+        toast({
+          title: 'Erreur',
+          description: error?.response?.data?.message || 'Impossible de charger les compétences',
+          variant: 'destructive',
+        })
+      } finally {
+        setLoadingCompetences(false)
+      }
+    }
+    loadCompetences()
+  }, [toast])
+
+  const toggleCompetence = (id: string) => {
+    setSelectedCompetenceIds((prev) =>
+      prev.includes(id) ? prev.filter((cid) => cid !== id) : [...prev, id]
+    )
+  }
+
   const onSubmit = async (data: OfferFormValues) => {
     try {
       setLoading(true)
-      const res = await api.post('/offers', data)
+      const res = await api.post('/offers', {
+        ...data,
+        competenceIds: selectedCompetenceIds,
+      })
       toast({
         title: 'Offre créée',
         description: 'Votre offre a été publiée avec succès.',
@@ -231,6 +262,41 @@ export default function CreateOffer() {
               {errors.description && (
                 <p className="text-sm text-destructive mt-2">{errors.description.message}</p>
               )}
+            </GlowCard>
+          </CardHoverEffect>
+
+          {/* Compétences requises */}
+          <CardHoverEffect>
+            <GlowCard className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <Label className="text-base font-semibold flex items-center gap-2">
+                  Compétences requises
+                </Label>
+                {loadingCompetences && (
+                  <span className="text-xs text-muted-foreground">Chargement...</span>
+                )}
+              </div>
+              <div className="grid sm:grid-cols-2 gap-2">
+                {competences.map((comp) => (
+                  <label
+                    key={comp.id}
+                    className="flex items-center gap-2 rounded-md border border-input px-3 py-2 hover:border-primary cursor-pointer transition-colors"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedCompetenceIds.includes(comp.id)}
+                      onChange={() => toggleCompetence(comp.id)}
+                      className="h-4 w-4 rounded border-primary text-primary focus:ring-primary"
+                    />
+                    <span className="text-sm">{comp.name}</span>
+                  </label>
+                ))}
+                {!loadingCompetences && competences.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    Aucune compétence disponible pour le moment.
+                  </p>
+                )}
+              </div>
             </GlowCard>
           </CardHoverEffect>
 

@@ -89,8 +89,45 @@ export default function AIAnalyzeCV() {
       setOwnershipMessage(null)
       return
     }
-    const emailMatch = user.email && text.toLowerCase().includes(user.email.toLowerCase())
-    const nameMatch = user.name && text.toLowerCase().includes(user.name.toLowerCase())
+
+    const normalize = (s: string) =>
+      s
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/\p{Diacritic}/gu, '')
+        .replace(/[^a-z0-9]/g, '')
+
+    const rawLower = text.toLowerCase()
+    const normalizedText = normalize(text)
+
+    const emailLower = user.email?.toLowerCase() || ''
+    const normalizedEmail = normalize(user.email || '')
+
+    const emailMatch =
+      (!!emailLower && rawLower.includes(emailLower)) ||
+      (!!normalizedEmail && normalizedText.includes(normalizedEmail))
+
+    let nameMatch = false
+    if (user.name) {
+      const nameLower = user.name.toLowerCase()
+      const normalizedName = normalize(user.name)
+      // On découpe le nom en mots pour détecter prénom et nom même séparés
+      const parts = nameLower.split(/\s+/).filter(Boolean)
+      const normalizedParts = parts.map((p) => normalize(p))
+
+      const allPartsPresent =
+        parts.length > 0 && parts.every((p) => rawLower.includes(p))
+      const allNormalizedPresent =
+        normalizedParts.length > 0 &&
+        normalizedParts.every((p) => normalizedText.includes(p))
+
+      nameMatch =
+        rawLower.includes(nameLower) ||
+        normalizedText.includes(normalizedName) ||
+        allPartsPresent ||
+        allNormalizedPresent
+    }
+
     const ok = emailMatch || nameMatch
     setOwnershipVerified(ok)
     setOwnershipMessage(
@@ -102,7 +139,7 @@ export default function AIAnalyzeCV() {
       toast({
         title: 'Vérification du CV',
         description:
-          'Nom ou email du CV introuvable. Veuillez vérifier que ce CV est bien le vôtre.',
+          'Nom ou email du CV introuvable. Vérifiez le CV ou ignorez si vous êtes certain.',
         variant: 'destructive',
       })
     }

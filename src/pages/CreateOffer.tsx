@@ -77,8 +77,10 @@ export default function CreateOffer() {
         skills.split(',').map(s => s.trim())
       )
 
-      if (result.content) {
-        setValue('description', result.content)
+      const content = result?.data?.content || result?.content
+
+      if (content) {
+        setValue('description', content)
         toast({
           title: 'Description générée',
           description: 'L\'IA a généré une description pour votre offre.',

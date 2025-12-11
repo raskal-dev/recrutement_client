@@ -30,6 +30,7 @@ import {
   Star,
   UserCircle,
   FileText,
+  DollarSign,
 } from 'lucide-react'
 import api from '@/lib/api'
 import { useToast } from '@/components/ui/use-toast'
@@ -60,6 +61,16 @@ interface UserProfile {
   Experiences?: Experience[]
 }
 
+interface Offer {
+  id: string
+  title: string
+  description: string
+  salary: string
+  localisation: string
+  contract: string
+  createdAt: string
+}
+
 const profileSchema = z.object({
   name: z.string().min(2, 'Nom trop court'),
   email: z.string().email('Email invalide'),
@@ -72,6 +83,9 @@ type ProfileFormValues = z.infer<typeof profileSchema>
 export default function Profile() {
   const navigate = useNavigate()
   const { setUser } = useAuthStore()
+  const currentUser = useAuthStore((s) => s.user)
+  const isStudent = currentUser?.role === 'student'
+  const isEnterprise = currentUser?.role === 'entreprise'
   const { toast } = useToast()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [competences, setCompetences] = useState<Competence[]>([])
@@ -83,6 +97,7 @@ export default function Profile() {
   const [showExperienceForm, setShowExperienceForm] = useState(false)
   const [editingExperience, setEditingExperience] = useState<Experience | null>(null)
   const [experienceLoading, setExperienceLoading] = useState(false)
+  const [offers, setOffers] = useState<Offer[]>([])
 
   const {
     register,
@@ -95,7 +110,12 @@ export default function Profile() {
 
   useEffect(() => {
     loadProfile()
-    loadCompetences()
+    if (isStudent) {
+      loadCompetences()
+    }
+    if (isEnterprise) {
+      loadOffers()
+    }
   }, [])
 
   useEffect(() => {
@@ -132,6 +152,20 @@ export default function Profile() {
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadOffers = async () => {
+    if (!isEnterprise) return
+    try {
+      const res = await api.get('/offers')
+      setOffers(res.data.data || [])
+    } catch (error: any) {
+      toast({
+        title: 'Erreur',
+        description: error?.response?.data?.message || 'Impossible de charger vos offres',
+        variant: 'destructive',
+      })
     }
   }
 
@@ -345,110 +379,111 @@ export default function Profile() {
               </GlowCard>
             </motion.div>
 
-            {/* Compétences */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-            >
-              <GlowCard className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <Briefcase className="w-5 h-5 text-primary" />
-                    Compétences
-                  </h3>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setShowAddCompetence(!showAddCompetence)}
-                    className="hover:bg-primary/10"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </div>
+            {isStudent && (
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+              >
+                <GlowCard className="p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <Briefcase className="w-5 h-5 text-primary" />
+                      Compétences
+                    </h3>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setShowAddCompetence(!showAddCompetence)}
+                      className="hover:bg-primary/10"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
 
-                {showAddCompetence && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="mb-6 p-4 rounded-lg bg-muted/50 border border-border space-y-4"
-                  >
-                    <p className="text-sm font-medium text-muted-foreground">Sélectionnez les compétences à ajouter :</p>
-                    <div className="flex flex-wrap gap-2">
-                      {availableCompetences
-                        .filter(c => !competences.find(uc => uc.id === c.id))
-                        .map(comp => (
-                          <motion.div
-                            key={comp.id}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                          >
-                            <Badge
-                              variant={selectedCompetences.includes(comp.id) ? 'default' : 'outline'}
-                              className="cursor-pointer px-3 py-1.5 text-sm transition-all hover:bg-primary/10"
-                              onClick={() => {
-                                setSelectedCompetences(prev =>
-                                  prev.includes(comp.id)
-                                    ? prev.filter(id => id !== comp.id)
-                                    : [...prev, comp.id]
-                                )
-                              }}
+                  {showAddCompetence && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="mb-6 p-4 rounded-lg bg-muted/50 border border-border space-y-4"
+                    >
+                      <p className="text-sm font-medium text-muted-foreground">Sélectionnez les compétences à ajouter :</p>
+                      <div className="flex flex-wrap gap-2">
+                        {availableCompetences
+                          .filter(c => !competences.find(uc => uc.id === c.id))
+                          .map(comp => (
+                            <motion.div
+                              key={comp.id}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
                             >
-                              {selectedCompetences.includes(comp.id) && (
-                                <CheckCircle2 className="w-3 h-3 mr-1.5" />
-                              )}
-                              {comp.name}
-                            </Badge>
-                          </motion.div>
-                        ))}
-                    </div>
-                    <div className="flex gap-2 pt-2">
-                      <Button size="sm" onClick={handleAddCompetences} className="flex-1">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Ajouter
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setShowAddCompetence(false)
-                          setSelectedCompetences([])
-                        }}
-                      >
-                        Annuler
-                      </Button>
-                    </div>
-                  </motion.div>
-                )}
-
-                <div className="flex flex-wrap gap-2 min-h-[40px]">
-                  {competences.length > 0 ? (
-                    competences.map((comp, index) => (
-                      <motion.div
-                        key={comp.id}
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: index * 0.05 }}
-                        whileHover={{ scale: 1.05 }}
-                      >
-                        <Badge 
-                          variant="secondary" 
-                          className="px-3 py-1.5 text-sm font-medium bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 transition-colors"
+                              <Badge
+                                variant={selectedCompetences.includes(comp.id) ? 'default' : 'outline'}
+                                className="cursor-pointer px-3 py-1.5 text-sm transition-all hover:bg-primary/10"
+                                onClick={() => {
+                                  setSelectedCompetences(prev =>
+                                    prev.includes(comp.id)
+                                      ? prev.filter(id => id !== comp.id)
+                                      : [...prev, comp.id]
+                                  )
+                                }}
+                              >
+                                {selectedCompetences.includes(comp.id) && (
+                                  <CheckCircle2 className="w-3 h-3 mr-1.5" />
+                                )}
+                                {comp.name}
+                              </Badge>
+                            </motion.div>
+                          ))}
+                      </div>
+                      <div className="flex gap-2 pt-2">
+                        <Button size="sm" onClick={handleAddCompetences} className="flex-1">
+                          <Plus className="w-4 h-4 mr-2" />
+                          Ajouter
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setShowAddCompetence(false)
+                            setSelectedCompetences([])
+                          }}
                         >
-                          <Star className="w-3 h-3 mr-1.5" />
-                          {comp.name}
-                        </Badge>
-                      </motion.div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground italic w-full text-center py-2">
-                      Aucune compétence ajoutée
-                    </p>
+                          Annuler
+                        </Button>
+                      </div>
+                    </motion.div>
                   )}
-                </div>
-              </GlowCard>
-            </motion.div>
+
+                  <div className="flex flex-wrap gap-2 min-h-[40px]">
+                    {competences.length > 0 ? (
+                      competences.map((comp, index) => (
+                        <motion.div
+                          key={comp.id}
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: index * 0.05 }}
+                          whileHover={{ scale: 1.05 }}
+                        >
+                          <Badge 
+                            variant="secondary" 
+                            className="px-3 py-1.5 text-sm font-medium bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 transition-colors"
+                          >
+                            <Star className="w-3 h-3 mr-1.5" />
+                            {comp.name}
+                          </Badge>
+                        </motion.div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic w-full text-center py-2">
+                        Aucune compétence ajoutée
+                      </p>
+                    )}
+                  </div>
+                </GlowCard>
+              </motion.div>
+            )}
           </div>
 
           {/* Main Content */}
@@ -677,144 +712,148 @@ export default function Profile() {
             </CardHoverEffect>
             </motion.div>
 
-            {/* IA Tools */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-            >
-              <CardHoverEffect>
-                <GlowCard className="p-6 bg-gradient-to-br from-primary/5 to-primary/0 border-primary/20">
-                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <div className="p-2 rounded-lg bg-primary/10">
-                      <Brain className="w-5 h-5 text-primary" />
-                    </div>
-                    Outils IA
-                  </h3>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start group hover:bg-primary/10 hover:border-primary/30 transition-all"
-                    onClick={() => navigate('/ai/analyze-cv')}
-                  >
-                    <Brain className="w-4 h-4 mr-2 group-hover:animate-pulse" />
-                    Analyser mon CV
-                    <Sparkles className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </Button>
-                </GlowCard>
-              </CardHoverEffect>
-            </motion.div>
-
-            {/* Expériences */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-            >
-              <CardHoverEffect>
-                <GlowCard className="p-8">
-                  <div className="flex items-center justify-between mb-8">
-                    <h3 className="text-xl font-semibold flex items-center gap-2">
+            {/* IA Tools - seulement étudiants */}
+            {isStudent && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+              >
+                <CardHoverEffect>
+                  <GlowCard className="p-6 bg-gradient-to-br from-primary/5 to-primary/0 border-primary/20">
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                       <div className="p-2 rounded-lg bg-primary/10">
-                        <Calendar className="w-5 h-5 text-primary" />
+                        <Brain className="w-5 h-5 text-primary" />
                       </div>
-                      Expériences professionnelles
+                      Outils IA
                     </h3>
                     <Button
-                      size="sm"
                       variant="outline"
-                      onClick={() => {
-                        setEditingExperience(null)
-                        setShowExperienceForm(true)
-                      }}
-                      className="hover:bg-primary/10"
+                      className="w-full justify-start group hover:bg-primary/10 hover:border-primary/30 transition-all"
+                      onClick={() => navigate('/ai/analyze-cv')}
                     >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Ajouter
+                      <Brain className="w-4 h-4 mr-2 group-hover:animate-pulse" />
+                      Analyser mon CV
+                      <Sparkles className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
                     </Button>
-                  </div>
+                  </GlowCard>
+                </CardHoverEffect>
+              </motion.div>
+            )}
 
-                  {profile.Experiences && profile.Experiences.length > 0 ? (
-                    <div className="relative">
-                      {/* Timeline line */}
-                      <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary/20 via-primary/10 to-transparent" />
-                      
-                      <div className="space-y-6">
-                        {[...profile.Experiences]
-                          .sort((a, b) => {
-                            const dateA = new Date(a.startDate).getTime()
-                            const dateB = new Date(b.startDate).getTime()
-                            return dateB - dateA // Tri décroissant (plus récent en premier)
-                          })
-                          .map((exp, index) => (
-                          <motion.div
-                            key={exp.id}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            className="relative pl-12"
-                          >
-                            {/* Timeline dot */}
-                            <div className="absolute left-0 top-2 w-8 h-8 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center">
-                              <div className="w-2 h-2 rounded-full bg-primary" />
-                            </div>
-                            
-                            <div className="group relative p-5 rounded-xl border border-border bg-card hover:bg-muted/50 transition-all hover:shadow-lg hover:shadow-primary/5">
-                              <div className="flex items-start justify-between gap-4">
-                                <div className="flex-1 space-y-2">
-                                  <h4 className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
-                                    {exp.title}
-                                  </h4>
-                                  <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
-                                    {exp.description}
-                                  </p>
-                                  <div className="flex items-center gap-3 text-xs font-medium text-muted-foreground pt-2">
-                                    <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted">
-                                      <Calendar className="w-3 h-3" />
-                                      {new Date(exp.startDate).toLocaleDateString('fr-FR', {
-                                        month: 'short',
-                                        year: 'numeric',
-                                      })}
-                                    </div>
-                                    <span className="text-primary">→</span>
-                                    <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted">
-                                      <Calendar className="w-3 h-3" />
-                                      {new Date(exp.endDate).toLocaleDateString('fr-FR', {
-                                        month: 'short',
-                                        year: 'numeric',
-                                      })}
+            {/* Expériences : seulement pour étudiants */}
+            {isStudent && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.4 }}
+              >
+                <CardHoverEffect>
+                  <GlowCard className="p-8">
+                    <div className="flex items-center justify-between mb-8">
+                      <h3 className="text-xl font-semibold flex items-center gap-2">
+                        <div className="p-2 rounded-lg bg-primary/10">
+                          <Calendar className="w-5 h-5 text-primary" />
+                        </div>
+                        Expériences professionnelles
+                      </h3>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setEditingExperience(null)
+                          setShowExperienceForm(true)
+                        }}
+                        className="hover:bg-primary/10"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Ajouter
+                      </Button>
+                    </div>
+
+                    {profile.Experiences && profile.Experiences.length > 0 ? (
+                      <div className="relative">
+                        {/* Timeline line */}
+                        <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary/20 via-primary/10 to-transparent" />
+                        
+                        <div className="space-y-6">
+                          {[...profile.Experiences]
+                            .sort((a, b) => {
+                              const dateA = new Date(a.startDate).getTime()
+                              const dateB = new Date(b.startDate).getTime()
+                              return dateB - dateA // Tri décroissant (plus récent en premier)
+                            })
+                            .map((exp, index) => (
+                            <motion.div
+                              key={exp.id}
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: index * 0.1 }}
+                              className="relative pl-12"
+                            >
+                              {/* Timeline dot */}
+                              <div className="absolute left-0 top-2 w-8 h-8 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center">
+                                <div className="w-2 h-2 rounded-full bg-primary" />
+                              </div>
+                              
+                              <div className="group relative p-5 rounded-xl border border-border bg-card hover:bg-muted/50 transition-all hover:shadow-lg hover:shadow-primary/5">
+                                <div className="flex items-start justify-between gap-4">
+                                  <div className="flex-1 space-y-2">
+                                    <h4 className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
+                                      {exp.title}
+                                    </h4>
+                                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
+                                      {exp.description}
+                                    </p>
+                                    <div className="flex items-center gap-3 text-xs font-medium text-muted-foreground pt-2">
+                                      <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted">
+                                        <Calendar className="w-3 h-3" />
+                                        {new Date(exp.startDate).toLocaleDateString('fr-FR', {
+                                          month: 'short',
+                                          year: 'numeric',
+                                        })}
+                                      </div>
+                                      <span className="text-primary">→</span>
+                                      <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted">
+                                        <Calendar className="w-3 h-3" />
+                                        {new Date(exp.endDate).toLocaleDateString('fr-FR', {
+                                          month: 'short',
+                                          year: 'numeric',
+                                        })}
+                                      </div>
                                     </div>
                                   </div>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleDeleteExperience(exp.id)}
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
                                 </div>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleDeleteExperience(exp.id)}
-                                  className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
                               </div>
-                            </div>
-                          </motion.div>
-                        ))}
+                            </motion.div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
-                        <Calendar className="w-8 h-8 text-muted-foreground" />
+                    ) : (
+                      <div className="text-center py-12">
+                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
+                          <Calendar className="w-8 h-8 text-muted-foreground" />
+                        </div>
+                        <p className="text-sm text-muted-foreground font-medium">
+                          Aucune expérience ajoutée
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Cliquez sur "Ajouter" pour commencer
+                        </p>
                       </div>
-                      <p className="text-sm text-muted-foreground font-medium">
-                        Aucune expérience ajoutée
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Cliquez sur "Ajouter" pour commencer
-                      </p>
-                    </div>
-                  )}
-                </GlowCard>
-              </CardHoverEffect>
-            </motion.div>
+                    )}
+                  </GlowCard>
+                </CardHoverEffect>
+              </motion.div>
+            )}
           </div>
         </div>
       </div>

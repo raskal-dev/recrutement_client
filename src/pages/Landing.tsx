@@ -1,39 +1,39 @@
-import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { AnimatedGradient } from '@/components/magic/AnimatedGradient'
-import { SparklesText } from '@/components/magic/SparklesText'
-import { CardHoverEffect } from '@/components/magic/CardHoverEffect'
 import { BorderBeam } from '@/components/magic/BorderBeam'
+import { CardHoverEffect } from '@/components/magic/CardHoverEffect'
 import { GlowCard } from '@/components/magic/GlowCard'
-import { Particles } from '@/components/magic/Particles'
 import { InfiniteScroll } from '@/components/magic/InfiniteScroll'
-import { 
-  Briefcase, 
-  Users, 
-  Zap, 
-  Sparkles, 
-  TrendingUp, 
-  Shield,
-  CheckCircle2,
+import { Particles } from '@/components/magic/Particles'
+import { ShimmerButton } from '@/components/magic/ShimmerButton'
+import { SparklesText } from '@/components/magic/SparklesText'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { motion } from 'framer-motion'
+import {
   ArrowRight,
+  Award,
   Brain,
+  Briefcase,
   Rocket,
+  Shield,
   Star,
-  Award
+  TrendingUp,
+  Users
 } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 
 export default function Landing() {
+  const navigate = useNavigate()
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20 relative">
       <AnimatedGradient />
-      <Particles 
-        className="absolute inset-0 opacity-30" 
+      <Particles
+        className="absolute inset-0 opacity-30"
         quantity={50}
         color="hsl(var(--primary))"
       />
-      
+
       {/* Hero Section */}
       <section className="relative overflow-hidden pt-20 pb-32 px-4">
         <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,white,transparent)]" />
@@ -53,28 +53,35 @@ export default function Landing() {
               <SparklesText text="Plateforme de recrutement nouvelle génération" />
             </motion.div>
 
-            <h1 className="text-5xl md:text-7xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground via-primary to-foreground">
+            <h1 className="text-5xl md:text-8xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/50">
               Trouve ton job de rêve
               <br />
-              <span className="text-primary">ou recrute les meilleurs talents</span>
+              <span className="text-primary italic">propulsé par l'IA</span>
             </h1>
 
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              La plateforme qui combine la puissance de LinkedIn et la flexibilité d'Upwork.
-              Connecte-toi avec des opportunités qui te correspondent vraiment.
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              L'alliance parfaite entre le réseau professionnel et l'efficacité du freelance.
+              Une expérience fluide, intelligente et résolument moderne.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
-              <Button size="lg" className="group relative overflow-hidden" asChild>
-                <Link to="/register">
-                  <span className="relative z-10 flex items-center">
-                    Commencer gratuitement
-                    <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </span>
-                </Link>
-              </Button>
-              <Button size="lg" variant="outline" className="backdrop-blur-sm" asChild>
-                <Link to="/login">Se connecter</Link>
+            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center pt-8">
+              <ShimmerButton
+                onClick={() => navigate('/register')}
+                className="shadow-2xl"
+              >
+                <span className="flex items-center gap-2">
+                  Commencer l'aventure
+                  <ArrowRight className="w-4 h-4" />
+                </span>
+              </ShimmerButton>
+
+              <Button
+                size="lg"
+                variant="link"
+                className="text-foreground hover:text-primary transition-colors text-lg"
+                onClick={() => navigate('/login')}
+              >
+                Déjà membre ? Se connecter
               </Button>
             </div>
 
@@ -171,7 +178,7 @@ export default function Landing() {
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                   className="p-6 relative overflow-hidden"
                 >
-                  <BorderBeam 
+                  <BorderBeam
                     size={150}
                     duration={12}
                     delay={index * 0.2}
@@ -200,7 +207,7 @@ export default function Landing() {
             transition={{ duration: 0.6 }}
             className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary to-primary/80 p-12 text-center"
           >
-            <BorderBeam 
+            <BorderBeam
               size={200}
               duration={15}
               colorFrom="#ffffff"

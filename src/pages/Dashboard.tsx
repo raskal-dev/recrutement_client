@@ -1,31 +1,30 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { AnimatedGradient } from '@/components/magic/AnimatedGradient'
+import { CardHoverEffect } from '@/components/magic/CardHoverEffect'
+import { ShimmerButton } from '@/components/magic/ShimmerButton'
+import { StatCard } from '@/components/stats/StatCard'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { CardHoverEffect } from '@/components/magic/CardHoverEffect'
-import { AnimatedGradient } from '@/components/magic/AnimatedGradient'
-import { GlowCard } from '@/components/magic/GlowCard'
-import { StatCard } from '@/components/stats/StatCard'
-import { 
-  Search, 
-  MapPin, 
-  DollarSign, 
+import { useToast } from '@/components/ui/use-toast'
+import api from '@/lib/api'
+import { useAuthStore } from '@/store/useAuthStore'
+import { motion } from 'framer-motion'
+import {
   Briefcase,
-  Filter,
-  Sparkles,
+  CheckCircle2,
+  DollarSign,
+  FileText,
+  LayoutDashboard,
+  MapPin,
+  Plus,
+  Search,
+  Target,
   TrendingUp,
   Users,
-  FileText,
-  Plus,
-  Target,
-  CheckCircle2,
   XCircle
 } from 'lucide-react'
-import api from '@/lib/api'
-import { useToast } from '@/components/ui/use-toast'
-import { useAuthStore } from '@/store/useAuthStore'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 interface Offer {
   id: string
@@ -86,7 +85,7 @@ export default function Dashboard() {
 
   const filteredOffers = offers.filter(offer => {
     const matchesSearch = offer.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          offer.description.toLowerCase().includes(searchTerm.toLowerCase())
+      offer.description.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesLocation = !filterLocation || offer.localisation.toLowerCase().includes(filterLocation.toLowerCase())
     return matchesSearch && matchesLocation
   })
@@ -99,39 +98,34 @@ export default function Dashboard() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-12"
         >
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="w-6 h-6 text-primary" />
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
-                  {isRecruiter ? 'Gérer vos offres' : 'Découvre les opportunités'}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-card/30 backdrop-blur-xl p-8 rounded-3xl border border-white/10 shadow-2xl">
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-primary/10">
+                  <LayoutDashboard className="w-6 h-6 text-primary" />
+                </div>
+                <h1 className="text-4xl font-black tracking-tight">
+                  {isRecruiter ? 'Tableau de bord' : 'Explore tes opportunités'}
                 </h1>
               </div>
-              <p className="text-muted-foreground">
-                {isRecruiter
-                  ? 'Créez et gérez vos offres d\'emploi'
-                  : 'Trouve le job parfait qui correspond à tes compétences'}
+              <p className="text-muted-foreground text-lg ml-11">
+                Bienvenue, <span className="text-foreground font-semibold">{user?.name}</span> 👋
               </p>
             </div>
-            {isRecruiter && (
-              <Button
-                onClick={() => navigate('/offers/new')}
-                className="group relative overflow-hidden"
-              >
-                <span className="relative z-10 flex items-center">
-                  <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform" />
-                  Créer une offre
-                </span>
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-primary/80 to-primary"
-                  initial={{ x: '-100%' }}
-                  whileHover={{ x: 0 }}
-                  transition={{ duration: 0.3 }}
-                />
-              </Button>
-            )}
+
+            <div className="flex items-center gap-4">
+              {isRecruiter && (
+                <ShimmerButton
+                  onClick={() => navigate('/offers/new')}
+                  className="shadow-xl"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nouvelle offre
+                </ShimmerButton>
+              )}
+            </div>
           </div>
         </motion.div>
 
@@ -207,7 +201,7 @@ export default function Dashboard() {
             <Briefcase className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-xl font-semibold mb-2">Aucune offre trouvée</h3>
             <p className="text-muted-foreground">
-              {offers.length === 0 
+              {offers.length === 0
                 ? 'Aucune offre disponible pour le moment.'
                 : 'Essayez de modifier vos critères de recherche.'}
             </p>
@@ -222,114 +216,114 @@ export default function Dashboard() {
                   transition={{ delay: index * 0.05 }}
                   className="group relative overflow-hidden"
                 >
-                <div className="p-6 space-y-4">
-                  <div className="flex items-start justify-between">
-                    <h3 className="text-xl font-semibold group-hover:text-primary transition-colors">
-                      {offer.title}
-                    </h3>
-                    {isStudent && offer.matchingScore !== undefined && (
-                      <Badge 
-                        variant={offer.matchingScore >= 70 ? "default" : offer.matchingScore >= 50 ? "secondary" : "outline"}
-                        className="ml-2 flex items-center gap-1"
-                      >
-                        <Target className="w-3 h-3" />
-                        {offer.matchingScore}%
-                      </Badge>
-                    )}
-                  </div>
+                  <div className="p-6 space-y-4">
+                    <div className="flex items-start justify-between">
+                      <h3 className="text-xl font-semibold group-hover:text-primary transition-colors">
+                        {offer.title}
+                      </h3>
+                      {isStudent && offer.matchingScore !== undefined && (
+                        <Badge
+                          variant={offer.matchingScore >= 70 ? "default" : offer.matchingScore >= 50 ? "secondary" : "outline"}
+                          className="ml-2 flex items-center gap-1"
+                        >
+                          <Target className="w-3 h-3" />
+                          {offer.matchingScore}%
+                        </Badge>
+                      )}
+                    </div>
 
-                  {isStudent && offer.matchingScore !== undefined && offer.matchingScore < 100 && (
-                    <div className="p-3 rounded-lg bg-muted/50 border border-primary/20">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Target className="w-4 h-4 text-primary" />
-                        <span className="text-sm font-medium">Correspondance</span>
+                    {isStudent && offer.matchingScore !== undefined && offer.matchingScore < 100 && (
+                      <div className="p-3 rounded-lg bg-muted/50 border border-primary/20">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Target className="w-4 h-4 text-primary" />
+                          <span className="text-sm font-medium">Correspondance</span>
+                        </div>
+                        {offer.matchingCompetences && offer.matchingCompetences.length > 0 && (
+                          <div className="mb-2">
+                            <div className="flex items-center gap-1 mb-1">
+                              <CheckCircle2 className="w-3 h-3 text-green-500" />
+                              <span className="text-xs text-muted-foreground">Compétences correspondantes:</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {offer.matchingCompetences.map((comp) => (
+                                <Badge key={comp.id} variant="secondary" className="text-xs">
+                                  {comp.name}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {offer.missingCompetences && offer.missingCompetences.length > 0 && (
+                          <div>
+                            <div className="flex items-center gap-1 mb-1">
+                              <XCircle className="w-3 h-3 text-orange-500" />
+                              <span className="text-xs text-muted-foreground">Compétences manquantes:</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {offer.missingCompetences.slice(0, 3).map((comp) => (
+                                <Badge key={comp.id} variant="outline" className="text-xs">
+                                  {comp.name}
+                                </Badge>
+                              ))}
+                              {offer.missingCompetences.length > 3 && (
+                                <Badge variant="outline" className="text-xs">
+                                  +{offer.missingCompetences.length - 3}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      {offer.matchingCompetences && offer.matchingCompetences.length > 0 && (
-                        <div className="mb-2">
-                          <div className="flex items-center gap-1 mb-1">
-                            <CheckCircle2 className="w-3 h-3 text-green-500" />
-                            <span className="text-xs text-muted-foreground">Compétences correspondantes:</span>
-                          </div>
-                          <div className="flex flex-wrap gap-1">
-                            {offer.matchingCompetences.map((comp) => (
-                              <Badge key={comp.id} variant="secondary" className="text-xs">
-                                {comp.name}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {offer.missingCompetences && offer.missingCompetences.length > 0 && (
-                        <div>
-                          <div className="flex items-center gap-1 mb-1">
-                            <XCircle className="w-3 h-3 text-orange-500" />
-                            <span className="text-xs text-muted-foreground">Compétences manquantes:</span>
-                          </div>
-                          <div className="flex flex-wrap gap-1">
-                            {offer.missingCompetences.slice(0, 3).map((comp) => (
-                              <Badge key={comp.id} variant="outline" className="text-xs">
-                                {comp.name}
-                              </Badge>
-                            ))}
-                            {offer.missingCompetences.length > 3 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{offer.missingCompetences.length - 3}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  <p className="text-muted-foreground line-clamp-3">
-                    {offer.description}
-                  </p>
-
-                  <div className="flex flex-wrap gap-2 pt-2">
-                    <Badge variant="outline" className="text-xs">
-                      <MapPin className="w-3 h-3 mr-1" />
-                      {offer.localisation}
-                    </Badge>
-                    <Badge variant="outline" className="text-xs">
-                      <DollarSign className="w-3 h-3 mr-1" />
-                      {offer.salary}
-                    </Badge>
-                    <Badge variant="secondary" className="text-xs">
-                      <Briefcase className="w-3 h-3 mr-1" />
-                      {offer.contract}
-                    </Badge>
-                  </div>
-
-                  {offer.User && (
-                    <div className="pt-2 border-t">
-                      <p className="text-sm text-muted-foreground">
-                        Par <span className="font-medium">{offer.User.name}</span>
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="flex gap-2">
-                    <Button 
-                      className="flex-1 group-hover:bg-primary/90 transition-all" 
-                      variant="default"
-                      onClick={() => navigate(`/offers/${offer.id}`)}
-                    >
-                      Voir l'offre
-                    </Button>
-                    {isRecruiter && (
-                      <Button 
-                        variant="outline"
-                        onClick={() => navigate(`/offers/${offer.id}/applications`)}
-                        className="flex items-center gap-2"
-                      >
-                        <FileText className="w-4 h-4" />
-                        Candidatures
-                      </Button>
                     )}
+
+                    <p className="text-muted-foreground line-clamp-3">
+                      {offer.description}
+                    </p>
+
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      <Badge variant="outline" className="text-xs">
+                        <MapPin className="w-3 h-3 mr-1" />
+                        {offer.localisation}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        <DollarSign className="w-3 h-3 mr-1" />
+                        {offer.salary}
+                      </Badge>
+                      <Badge variant="secondary" className="text-xs">
+                        <Briefcase className="w-3 h-3 mr-1" />
+                        {offer.contract}
+                      </Badge>
+                    </div>
+
+                    {offer.User && (
+                      <div className="pt-2 border-t">
+                        <p className="text-sm text-muted-foreground">
+                          Par <span className="font-medium">{offer.User.name}</span>
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <Button
+                        className="flex-1 group-hover:bg-primary/90 transition-all"
+                        variant="default"
+                        onClick={() => navigate(`/offers/${offer.id}`)}
+                      >
+                        Voir l'offre
+                      </Button>
+                      {isRecruiter && (
+                        <Button
+                          variant="outline"
+                          onClick={() => navigate(`/offers/${offer.id}/applications`)}
+                          className="flex items-center gap-2"
+                        >
+                          <FileText className="w-4 h-4" />
+                          Candidatures
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </motion.div>
+                </motion.div>
               </CardHoverEffect>
             ))}
           </div>

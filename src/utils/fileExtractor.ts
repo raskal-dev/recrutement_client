@@ -1,4 +1,4 @@
-import * as pdfjsLib from 'pdfjs-dist'
+!!!!import * as pdfjsLib from 'pdfjs-dist'
 import mammoth from 'mammoth'
 
 // Configuration de pdfjs-dist pour le worker
